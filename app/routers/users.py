@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Optional, Any, Dict
 import re
 from datetime import datetime, timezone
@@ -9,6 +10,8 @@ from app.dependencies.db import get_db
 from app.utils.ids import new_uuid
 # imported even if decorators are commented
 from app.middleware.auth import public
+from datetime import date, time
+from fastapi import Query
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -62,7 +65,54 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _date_bounds(start_date: date, end_date: date | None) -> tuple[datetime, datetime]:
+    """Return [start_dt, end_dt) UTC bounds for date-only filtering."""
+    start_dt = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
+    if end_date is None:
+        end_dt = start_dt + timedelta(days=1)
+    else:
+        if end_date < start_date:
+            raise ValueError("endDate cannot be earlier than startDate")
+        # end is inclusive for the calendar date -> add one day and use exclusive upper bound
+        end_dt = datetime.combine(
+            end_date, time.min, tzinfo=timezone.utc) + timedelta(days=1)
+    return start_dt, end_dt
+
+
+# also ADD THIS import near the top with other datetime imports
+
+
 # ---- Routes ----
+
+@router.get("/list")
+async def list_users(
+    startDate: date = Query(..., description="YYYY-MM-DD"),
+    endDate: date | None = Query(None, description="YYYY-MM-DD"),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    List users filtered by createdAt date (UTC), sorted by most recent first.
+    - Only startDate: returns that single day.
+    - startDate + endDate: inclusive date range.
+    """
+    try:
+        start_dt, end_dt = _date_bounds(startDate, endDate)
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+
+    cursor = (
+        db["users"]
+        .find(
+            {"createdAt": {"$gte": start_dt, "$lt": end_dt}},
+            projection={"_id": 0, "name": 1, "email": 1,
+                        "phone": 1, "sysId": 1, "qrId": 1, "createdAt": 1},
+        )
+        .sort("createdAt", -1)
+    )
+
+    items = [doc async for doc in cursor]
+    return {"status": "success", "data": items}
+
 
 @router.post("/register")
 # @public

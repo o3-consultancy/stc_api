@@ -8,6 +8,9 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.errors import DuplicateKeyError
 from app.dependencies.db import get_db
 from app.utils.ids import new_uuid
+from datetime import date, time, timedelta
+from fastapi import Query
+
 
 router = APIRouter(prefix="/surveys", tags=["surveys"])
 
@@ -71,6 +74,19 @@ class SurveyItem(BaseModel):
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _date_bounds(start_date: date, end_date: date | None) -> tuple[datetime, datetime]:
+    """Return [start_dt, end_dt) UTC bounds for date-only filtering."""
+    start_dt = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
+    if end_date is None:
+        end_dt = start_dt + timedelta(days=1)
+    else:
+        if end_date < start_date:
+            raise ValueError("endDate cannot be earlier than startDate")
+        end_dt = datetime.combine(
+            end_date, time.min, tzinfo=timezone.utc) + timedelta(days=1)
+    return start_dt, end_dt
 
 
 async def _get_or_create_user_by_qr(
@@ -141,6 +157,57 @@ async def _get_or_create_user_by_qr(
 
 
 # ---------- Routes ----------
+@router.get("/list")
+async def list_surveys(
+    startDate: date = Query(..., description="YYYY-MM-DD"),
+    endDate: date | None = Query(None, description="YYYY-MM-DD"),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """
+    List surveys filtered by submittedAt date (UTC), sorted by most recent first.
+    - Only startDate: that single day.
+    - startDate + endDate: inclusive range.
+    """
+    try:
+        start_dt, end_dt = _date_bounds(startDate, endDate)
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+
+    cursor = (
+        db["surveys"]
+        .find(
+            {"submittedAt": {"$gte": start_dt, "$lt": end_dt}},
+            projection={
+                "_id": 1,
+                "qrId": 1,
+                "sysId": 1,
+                "name": 1,
+                "email": 1,
+                "phone": 1,
+                "company": 1,
+                "answers": 1,
+                "submittedAt": 1,
+            },
+        )
+        .sort("submittedAt", -1)
+    )
+
+    items = []
+    async for s in cursor:
+        items.append({
+            "surveyId": str(s["_id"]),
+            "qrId": s.get("qrId"),
+            "sysId": s.get("sysId"),
+            "name": s.get("name"),
+            "email": s.get("email"),
+            "phone": s.get("phone"),
+            "company": s.get("company"),
+            "answers": s.get("answers", {}),
+            "submittedAt": s.get("submittedAt"),
+        })
+
+    return {"status": "success", "data": items}
+
 
 @router.post("/submit")
 async def submit_survey(payload: SubmitSurveyRequest, db: AsyncIOMotorDatabase = Depends(get_db)):

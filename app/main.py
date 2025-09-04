@@ -12,7 +12,7 @@ settings = get_settings()
 
 app = FastAPI(
     title="STC API",
-    version="1.0.0",
+    version="1.1.0",
     openapi_url="/openapi.json",
     docs_url=None,
     redoc_url=None,
