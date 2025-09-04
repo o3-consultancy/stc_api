@@ -44,6 +44,16 @@ async def _ensure_indexes(db: AsyncIOMotorDatabase) -> None:
     # quiz_results
     await db["quiz_results"].create_index([("qrId", 1), ("submittedAt", -1)], name="qr_ts")
 
+    # surveys (already added previously)
+    await db["surveys"].create_index([("qrId", 1), ("submittedAt", -1)], name="survey_qr_ts")
+    await db["surveys"].create_index([("sysId", 1), ("submittedAt", -1)], name="survey_sys_ts")
+    # helpful
+    await db["surveys"].create_index([("company", 1), ("submittedAt", -1)], name="survey_company_ts")
+
+    # keys (new)
+    await db["keys"].create_index("hash", unique=True, name="uq_hash")
+    await db["keys"].create_index("label", name="label")
+    await db["keys"].create_index("createdAt", name="createdAt")
     # outbox
     await db["outbox"].create_index([("status", 1), ("createdAt", 1)], name="status_created")
     await db["outbox"].create_index([("topic", 1), ("status", 1)], name="topic_status")
