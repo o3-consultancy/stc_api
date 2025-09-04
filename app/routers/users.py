@@ -7,6 +7,7 @@ from pymongo.errors import DuplicateKeyError
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.dependencies.db import get_db
 from app.utils.ids import new_uuid
+# imported even if decorators are commented
 from app.middleware.auth import public
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -100,10 +101,9 @@ async def register_user(payload: RegisterUserRequest, db: AsyncIOMotorDatabase =
             msg = "phone already registered"
         return {"status": "error", "message": msg}
 
-    # NOTE: Returning message per your spec (typo preserved if needed)
     return {
         "status": "success",
-        "message": "User cerated successfully",
+        "message": "User created successfully",
         "systemUserId": sys_id,
         "qrId": doc["qrId"],
     }

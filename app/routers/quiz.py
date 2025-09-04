@@ -65,9 +65,8 @@ async def submit_quiz(payload: SubmitQuizRequest, db: AsyncIOMotorDatabase = Dep
         },
     )
 
-    # per spec (typos preserved): "Quizz submitted scuesfully", "correctanswers"
     return {
         "status": "success",
-        "message": "Quizz submitted scuesfully",
-        "data": {"qrId": qr, "correctanswers": correct},
+        "message": "Quiz submitted successfully",
+        "data": {"qrId": qr, "correctAnswers": correct},
     }

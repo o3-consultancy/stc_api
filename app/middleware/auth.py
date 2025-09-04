@@ -8,7 +8,7 @@ HEADER_NAME = "x-api-key"
 
 
 def _template_to_regex(path_template: str) -> Pattern:
-    # Convert "/api/users/by-qr/{qrId}" -> r"^/api/users/by-qr/[^/]+$"
+    # Convert e.g. "/api/users/by-qr/{qrId}" -> r"^/api/users/by-qr/[^/]+$"
     pattern = re.sub(r"\{[^/]+\}", r"[^/]+", path_template)
     return re.compile(f"^{pattern}$")
 
@@ -16,20 +16,24 @@ def _template_to_regex(path_template: str) -> Pattern:
 class ApiKeyAuthMiddleware:
     """
     Requires header 'x-api-key' to match settings.API_KEY for all routes,
-    EXCEPT those pre-registered as public.
-
-    Public routes are added via `register_public_paths(app, [...])`.
+    EXCEPT those whitelisted as public.
     """
 
     def __init__(self, app: ASGIApp, public_paths: Iterable[str]):
         self.app = app
         self.settings = get_settings()
+
+        # Exact public paths (match one URL only)
+        always_public_exact = ["/redoc",
+                               "/healthz", "/docs"]  # keep /docs exact too
         self._public_patterns: List[Pattern] = [
             _template_to_regex(p) for p in public_paths]
-        # Always allow docs/health
-        always_public = ["/docs", "/redoc", "/openapi.json", "/healthz"]
         self._public_patterns.extend(_template_to_regex(p)
-                                     for p in always_public)
+                                     for p in always_public_exact)
+
+        # Prefix public paths (match any URL starting with these)
+        # Make all static docs public, e.g. /docs/, /docs/index.html, /docs/assets/...
+        self._public_prefixes: List[str] = ["/docs/"]
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         if scope["type"] != "http":
@@ -39,12 +43,15 @@ class ApiKeyAuthMiddleware:
         path: str = scope.get("path", "")
         method: str = scope.get("method", "GET")
 
-        # CORS preflight
+        # Allow CORS preflight
         if method == "OPTIONS":
             await self.app(scope, receive, send)
             return
 
-        if any(p.match(path) for p in self._public_patterns):
+        # Public if path matches an exact public pattern OR begins with a public prefix
+        if any(p.match(path) for p in self._public_patterns) or any(
+            path.startswith(prefix) for prefix in self._public_prefixes
+        ):
             await self.app(scope, receive, send)
             return
 
@@ -65,9 +72,7 @@ class ApiKeyAuthMiddleware:
 
 
 def collect_public_paths(app) -> List[str]:
-    """
-    Scan app routes and gather path templates where endpoint has attribute `is_public = True`.
-    """
+    """Gather path templates where endpoint has attribute `is_public = True`."""
     public_paths: List[str] = []
     try:
         for route in app.router.routes:

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>STC API – Documentation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- ReDoc standalone -->
+  <script src="https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.min.js"></script>
+  <style>
+    :root {
+      --brand-bg: #0f172a;
+      --brand-fg: #ffffff;
+      --body-bg: #ffffff;
+      --footer-fg: #6b7280;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background: var(--body-bg);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--brand-bg);
+      color: var(--brand-fg);
+      padding: 14px 18px;
+    }
+
+    .topbar .logo {
+      height: 28px;
+      width: auto;
+      display: block;
+    }
+
+    .topbar .titles {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .topbar .env {
+      opacity: .85;
+      font-size: 12px;
+    }
+
+    #redoc-container {
+      min-height: calc(100vh - 84px - 48px);
+      /* header + footer */
+    }
+
+    footer.site-footer {
+      color: var(--footer-fg);
+      font-size: 12px;
+      text-align: center;
+      padding: 12px 16px 24px;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Header -->
+  <div class="topbar">
+    <!-- Use absolute path so it works at /docs and /docs/ -->
+    <img src="/docs/logo.png" alt="O3 Consultancy" class="logo" onerror="this.style.display='none'">
+    <div class="titles">
+      <h1>STC API</h1>
+      <div class="env">Production: <code>https://stc-api.o3consultancy.ae</code></div>
+    </div>
+  </div>
+
+  <!-- ReDoc mount -->
+  <div id="redoc-container"></div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    &copy; 2025 O3 Consultancy LLC. All rights reserved.
+  </footer>
+
+  <!-- Embedded OpenAPI spec (production-only, with typos fixed) -->
+  <script id="spec" type="application/json">
+  {
+    "openapi": "3.0.3",
+    "info": {
+      "title": "STC API",
+      "version": "1.0.0",
+      "description": "STC API for user registration, lookup by QR, and quiz submissions.\\n\\n**Auth:** All `/api/**` endpoints require header `x-api-key`. Public endpoints: `/healthz`, `/docs`."
+    },
+    "servers": [
+      { "url": "https://stc-api.o3consultancy.ae", "description": "Production" }
+    ],
+    "paths": {
+      "/healthz": {
+        "get": {
+          "summary": "Health check (public)",
+          "security": [],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": { "status": { "type": "string", "example": "ok" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/api/users/register": {
+        "post": {
+          "summary": "Register user (secured)",
+          "security": [ { "ApiKeyAuth": [] } ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RegisterUserRequest" },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "name": "Jane Doe",
+                      "qrId": "QR_ABC123",
+                      "email": "jane@example.com",
+                      "phone": "0501234567"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "User created (current implementation returns 200)",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/RegisterUserSuccess" },
+                  "examples": {
+                    "success": {
+                      "value": {
+                        "status": "success",
+                        "message": "User created successfully",
+                        "systemUserId": "f0a0a2f0e7ee4a37be1b1e3f6f8b3d0b",
+                        "qrId": "QR_ABC123"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "409": {
+              "description": "Conflict (duplicate)",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                  "examples": {
+                    "duplicateQr": { "value": { "status": "error", "message": "qrId already registered" } }
+                  }
+                }
+              }
+            },
+            "422": {
+              "description": "Validation error",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            }
+          }
+        }
+      },
+      "/api/users/by-qr/{qrId}": {
+        "get": {
+          "summary": "Get user by QR ID (secured)",
+          "security": [ { "ApiKeyAuth": [] } ],
+          "parameters": [
+            { "in": "path", "name": "qrId", "required": true, "schema": { "type": "string" }, "description": "User QR ID" }
+          ],
+          "responses": {
+            "200": {
+              "description": "User found",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/UserDetailsSuccess" }
+                }
+              }
+            },
+            "404": {
+              "description": "Not found",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            }
+          }
+        }
+      },
+      "/api/quiz/submit": {
+        "post": {
+          "summary": "Submit quiz results (secured)",
+          "security": [ { "ApiKeyAuth": [] } ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SubmitQuizRequest" },
+                "examples": {
+                  "default": { "value": { "qrId": "QR_ABC123", "correctAnswers": 7 } }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Quiz submitted",
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/SubmitQuizSuccess" },
+                  "examples": {
+                    "success": {
+                      "value": {
+                        "status": "success",
+                        "message": "Quiz submitted successfully",
+                        "data": { "qrId": "QR_ABC123", "correctAnswers": 7 }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "User not found for qrId",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            },
+            "422": {
+              "description": "Validation error",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            },
+            "401": {
+              "description": "Unauthorized",
+              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "ApiKeyAuth": { "type": "apiKey", "in": "header", "name": "x-api-key" }
+      },
+      "schemas": {
+        "RegisterUserRequest": {
+          "type": "object",
+          "required": ["name", "qrId"],
+          "properties": {
+            "name": { "type": "string", "minLength": 3, "maxLength": 50, "example": "Jane Doe" },
+            "qrId": { "type": "string", "example": "QR_ABC123" },
+            "email": { "type": "string", "format": "email", "nullable": true, "example": "jane@example.com" },
+            "phone": { "type": "string", "nullable": true, "description": "Exactly 10 digits", "example": "0501234567" }
+          }
+        },
+        "RegisterUserSuccess": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "example": "success" },
+            "message": { "type": "string", "example": "User created successfully" },
+            "systemUserId": { "type": "string", "description": "UUID v4 hex (32 chars)", "example": "f0a0a2f0e7ee4a37be1b1e3f6f8b3d0b" },
+            "qrId": { "type": "string", "example": "QR_ABC123" }
+          }
+        },
+        "UserDetailsSuccess": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "example": "success" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string", "example": "Jane Doe" },
+                "email": { "type": "string", "nullable": true, "example": "jane@example.com" },
+                "phone": { "type": "string", "nullable": true, "example": "0501234567" },
+                "sysId": { "type": "string", "example": "f0a0a2f0e7ee4a37be1b1e3f6f8b3d0b" },
+                "qrId": { "type": "string", "example": "QR_ABC123" }
+              }
+            }
+          }
+        },
+        "SubmitQuizRequest": {
+          "type": "object",
+          "required": ["qrId", "correctAnswers"],
+          "properties": {
+            "qrId": { "type": "string", "example": "QR_ABC123" },
+            "correctAnswers": { "type": "integer", "minimum": 0, "example": 7 }
+          }
+        },
+        "SubmitQuizSuccess": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "example": "success" },
+            "message": { "type": "string", "example": "Quiz submitted successfully" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "qrId": { "type": "string", "example": "QR_ABC123" },
+                "correctAnswers": { "type": "integer", "example": 7 }
+              }
+            }
+          }
+        },
+        "ErrorResponse": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "example": "error" },
+            "message": { "type": "string", "example": "reason for error" }
+          }
+        }
+      }
+    }
+  }
+  </script>
+
+  <script>
+    const spec = JSON.parse(document.getElementById('spec').textContent);
+    Redoc.init(spec, {
+      hideDownloadButton: false,
+      expandResponses: "200,201,400,401,404,409,422",
+      scrollYOffset: 60
+    }, document.getElementById('redoc-container'));
+  </script>
+</body>
+
+</html>
