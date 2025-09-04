@@ -64,7 +64,7 @@ def _utcnow() -> datetime:
 # ---- Routes ----
 
 @router.post("/register")
-@public
+# @public
 async def register_user(payload: RegisterUserRequest, db: AsyncIOMotorDatabase = Depends(get_db)):
     users = db["users"]
     sys_id = new_uuid()
@@ -110,7 +110,7 @@ async def register_user(payload: RegisterUserRequest, db: AsyncIOMotorDatabase =
 
 
 @router.get("/by-qr/{qrId}")
-@public
+# @public
 async def get_user_by_qr(qrId: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     users = db["users"]
     doc = await users.find_one(

@@ -35,7 +35,7 @@ def _utcnow():
 
 
 @router.post("/submit")
-@public
+# @public
 async def submit_quiz(payload: SubmitQuizRequest, db: AsyncIOMotorDatabase = Depends(get_db)):
     users = db["users"]
     quizzes = db["quiz_results"]
