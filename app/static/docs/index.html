@@ -1,337 +1,393 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8" />
-  <title>STC API – Documentation</title>
+  <title>STC API Docs</title>
+  <meta name="robots" content="noindex" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- ReDoc standalone -->
-  <script src="https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.min.js"></script>
   <style>
-    :root {
-      --brand-bg: #0f172a;
-      --brand-fg: #ffffff;
-      --body-bg: #ffffff;
-      --footer-fg: #6b7280;
-    }
-
     html,
-    body {
+    body,
+    #redoc {
       height: 100%;
       margin: 0;
-      background: var(--body-bg);
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: var(--brand-bg);
-      color: var(--brand-fg);
-      padding: 14px 18px;
-    }
-
-    .topbar .logo {
-      height: 28px;
-      width: auto;
-      display: block;
-    }
-
-    .topbar .titles {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .topbar h1 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-      line-height: 1.2;
-    }
-
-    .topbar .env {
-      opacity: .85;
-      font-size: 12px;
-    }
-
-    #redoc-container {
-      min-height: calc(100vh - 84px - 48px);
-      /* header + footer */
-    }
-
-    footer.site-footer {
-      color: var(--footer-fg);
-      font-size: 12px;
-      text-align: center;
-      padding: 12px 16px 24px;
-    }
-
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      padding: 0
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js" defer></script>
 </head>
 
 <body>
-  <!-- Header -->
-  <div class="topbar">
-    <!-- Use absolute path so it works at /docs and /docs/ -->
-    <img src="/docs/logo.png" alt="O3 Consultancy" class="logo" onerror="this.style.display='none'">
-    <div class="titles">
-      <h1>STC API</h1>
-      <div class="env">Production: <code>https://stc-api.o3consultancy.ae</code></div>
-    </div>
-  </div>
+  <div id="redoc"></div>
 
-  <!-- ReDoc mount -->
-  <div id="redoc-container"></div>
-
-  <!-- Footer -->
-  <footer class="site-footer">
-    &copy; 2025 O3 Consultancy LLC. All rights reserved.
-  </footer>
-
-  <!-- Embedded OpenAPI spec (production-only, with typos fixed) -->
+  <!-- OpenAPI 3.0 spec embedded inline -->
   <script id="spec" type="application/json">
   {
     "openapi": "3.0.3",
     "info": {
       "title": "STC API",
       "version": "1.0.0",
-      "description": "STC API for user registration, lookup by QR, and quiz submissions.\\n\\n**Auth:** All `/api/**` endpoints require header `x-api-key`. Public endpoints: `/healthz`, `/docs`."
+      "description": "Production API documentation for Users, Quiz, and Surveys.\n\nAll endpoints require the header: `x-api-key: <YOUR_API_KEY>`.\n\nBase URL: **https://stc-api.o3consultancy.ae/api**"
     },
     "servers": [
-      { "url": "https://stc-api.o3consultancy.ae", "description": "Production" }
+      { "url": "https://stc-api.o3consultancy.ae/api" }
     ],
-    "paths": {
-      "/healthz": {
-        "get": {
-          "summary": "Health check (public)",
-          "security": [],
-          "responses": {
-            "200": {
-              "description": "OK",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": { "status": { "type": "string", "example": "ok" } }
-                  }
-                }
-              }
-            }
-          }
+    "tags": [
+      { "name": "users", "description": "User registry (created automatically by surveys, can also be created manually)" },
+      { "name": "quiz", "description": "Quiz submission (once per QR) and queries" },
+      { "name": "surveys", "description": "Survey submission, phone validation, and queries" }
+    ],
+    "components": {
+      "securitySchemes": {
+        "ApiKeyAuth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "x-api-key",
+          "description": "Provide your API key"
         }
       },
-      "/api/users/register": {
-        "post": {
-          "summary": "Register user (secured)",
-          "security": [ { "ApiKeyAuth": [] } ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/RegisterUserRequest" },
-                "examples": {
-                  "default": {
-                    "value": {
-                      "name": "Jane Doe",
-                      "qrId": "QR_ABC123",
-                      "email": "jane@example.com",
-                      "phone": "0501234567"
-                    }
-                  }
-                }
-              }
-            }
+      "schemas": {
+        "StdError": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["error"] },
+            "message": { "type": "string" }
           },
-          "responses": {
-            "200": {
-              "description": "User created (current implementation returns 200)",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/RegisterUserSuccess" },
-                  "examples": {
-                    "success": {
-                      "value": {
-                        "status": "success",
-                        "message": "User created successfully",
-                        "systemUserId": "f0a0a2f0e7ee4a37be1b1e3f6f8b3d0b",
-                        "qrId": "QR_ABC123"
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "409": {
-              "description": "Conflict (duplicate)",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                  "examples": {
-                    "duplicateQr": { "value": { "status": "error", "message": "qrId already registered" } }
-                  }
-                }
-              }
-            },
-            "422": {
-              "description": "Validation error",
-              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
-            },
-            "401": {
-              "description": "Unauthorized",
-              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          "required": ["status", "message"]
+        },
+        "UserItem": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "company": { "type": "string", "nullable": true },
+            "phoneCountryCode": { "type": "string", "example": "+971" },
+            "phoneNumber": { "type": "string", "example": "501234567" },
+            "phoneE164": { "type": "string", "example": "+971501234567" },
+            "sysId": { "type": "string" },
+            "qrId": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time", "nullable": true }
+          }
+        },
+        "UserRegisterRequest": {
+          "type": "object",
+          "required": ["name", "qrId", "phoneCountryCode", "phoneNumber"],
+          "properties": {
+            "name": { "type": "string", "minLength": 3, "maxLength": 50 },
+            "qrId": { "type": "string" },
+            "company": { "type": "string", "nullable": true },
+            "phoneCountryCode": { "type": "string", "example": "+971" },
+            "phoneNumber": { "type": "string", "example": "501234567" }
+          }
+        },
+        "QuizItem": {
+          "type": "object",
+          "properties": {
+            "sysId": { "type": "string" },
+            "qrId": { "type": "string" },
+            "correctAnswers": { "type": "integer" },
+            "submittedAt": { "type": "string", "format": "date-time" }
+          }
+        },
+        "QuizSubmitRequest": {
+          "type": "object",
+          "required": ["qrId", "correctAnswers"],
+          "properties": {
+            "qrId": { "type": "string" },
+            "correctAnswers": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "SurveySubmitRequest": {
+          "type": "object",
+          "required": ["qrId", "name", "phoneCountryCode", "phoneNumber", "interest", "answers"],
+          "properties": {
+            "qrId": { "type": "string" },
+            "name": { "type": "string", "minLength": 3, "maxLength": 50 },
+            "company": { "type": "string", "nullable": true },
+            "phoneCountryCode": { "type": "string", "example": "+971" },
+            "phoneNumber": { "type": "string", "example": "501234567" },
+            "interest": { "type": "string", "enum": ["Smart Finance", "Bueniss Portal Service", "None"] },
+            "thoughtsOnStc": { "type": "string", "maxLength": 140, "nullable": true },
+            "answers": {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Key/value of question -> answer"
             }
           }
-        }
-      },
-      "/api/users/by-qr/{qrId}": {
-        "get": {
-          "summary": "Get user by QR ID (secured)",
-          "security": [ { "ApiKeyAuth": [] } ],
-          "parameters": [
-            { "in": "path", "name": "qrId", "required": true, "schema": { "type": "string" }, "description": "User QR ID" }
-          ],
-          "responses": {
-            "200": {
-              "description": "User found",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/UserDetailsSuccess" }
-                }
-              }
-            },
-            "404": {
-              "description": "Not found",
-              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
-            },
-            "401": {
-              "description": "Unauthorized",
-              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
-            }
-          }
-        }
-      },
-      "/api/quiz/submit": {
-        "post": {
-          "summary": "Submit quiz results (secured)",
-          "security": [ { "ApiKeyAuth": [] } ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/SubmitQuizRequest" },
-                "examples": {
-                  "default": { "value": { "qrId": "QR_ABC123", "correctAnswers": 7 } }
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": {
-              "description": "Quiz submitted",
-              "content": {
-                "application/json": {
-                  "schema": { "$ref": "#/components/schemas/SubmitQuizSuccess" },
-                  "examples": {
-                    "success": {
-                      "value": {
-                        "status": "success",
-                        "message": "Quiz submitted successfully",
-                        "data": { "qrId": "QR_ABC123", "correctAnswers": 7 }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            "404": {
-              "description": "User not found for qrId",
-              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
-            },
-            "422": {
-              "description": "Validation error",
-              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
-            },
-            "401": {
-              "description": "Unauthorized",
-              "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
-            }
+        },
+        "SurveyItem": {
+          "type": "object",
+          "properties": {
+            "surveyId": { "type": "string" },
+            "qrId": { "type": "string" },
+            "sysId": { "type": "string" },
+            "name": { "type": "string" },
+            "company": { "type": "string", "nullable": true },
+            "phoneCountryCode": { "type": "string" },
+            "phoneNumber": { "type": "string" },
+            "phoneE164": { "type": "string" },
+            "interest": { "type": "string", "enum": ["Smart Finance", "Bueniss Portal Service", "None"] },
+            "raffleEligible": { "type": "boolean" },
+            "raffleDate": { "type": "string", "format": "date", "nullable": true },
+            "thoughtsOnStc": { "type": "string", "nullable": true },
+            "answers": { "type": "object", "additionalProperties": true },
+            "submittedAt": { "type": "string", "format": "date-time" }
           }
         }
       }
     },
-    "components": {
-      "securitySchemes": {
-        "ApiKeyAuth": { "type": "apiKey", "in": "header", "name": "x-api-key" }
+    "security": [{ "ApiKeyAuth": [] }],
+    "paths": {
+      "/users/list": {
+        "get": {
+          "tags": ["users"],
+          "summary": "List users by createdAt date (UTC)",
+          "parameters": [
+            { "name": "startDate", "in": "query", "required": true, "schema": { "type": "string", "format": "date" }, "description": "YYYY-MM-DD" },
+            { "name": "endDate", "in": "query", "required": false, "schema": { "type": "string", "format": "date" }, "description": "YYYY-MM-DD (optional)" }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "data": { "type": "array", "items": { "$ref": "#/components/schemas/UserItem" } } } } } }
+            }
+          },
+          "x-codeSamples": [
+            {
+              "lang": "bash",
+              "label": "curl",
+              "source": "curl -s \"https://stc-api.o3consultancy.ae/api/users/list?startDate=2025-09-01&endDate=2025-09-04\" \\\n  -H \"x-api-key: $API_KEY\""
+            }
+          ]
+        }
       },
-      "schemas": {
-        "RegisterUserRequest": {
-          "type": "object",
-          "required": ["name", "qrId"],
-          "properties": {
-            "name": { "type": "string", "minLength": 3, "maxLength": 50, "example": "Jane Doe" },
-            "qrId": { "type": "string", "example": "QR_ABC123" },
-            "email": { "type": "string", "format": "email", "nullable": true, "example": "jane@example.com" },
-            "phone": { "type": "string", "nullable": true, "description": "Exactly 10 digits", "example": "0501234567" }
-          }
-        },
-        "RegisterUserSuccess": {
-          "type": "object",
-          "properties": {
-            "status": { "type": "string", "example": "success" },
-            "message": { "type": "string", "example": "User created successfully" },
-            "systemUserId": { "type": "string", "description": "UUID v4 hex (32 chars)", "example": "f0a0a2f0e7ee4a37be1b1e3f6f8b3d0b" },
-            "qrId": { "type": "string", "example": "QR_ABC123" }
-          }
-        },
-        "UserDetailsSuccess": {
-          "type": "object",
-          "properties": {
-            "status": { "type": "string", "example": "success" },
-            "data": {
-              "type": "object",
-              "properties": {
-                "name": { "type": "string", "example": "Jane Doe" },
-                "email": { "type": "string", "nullable": true, "example": "jane@example.com" },
-                "phone": { "type": "string", "nullable": true, "example": "0501234567" },
-                "sysId": { "type": "string", "example": "f0a0a2f0e7ee4a37be1b1e3f6f8b3d0b" },
-                "qrId": { "type": "string", "example": "QR_ABC123" }
-              }
+      "/users/by-qr/{qrId}": {
+        "get": {
+          "tags": ["users"],
+          "summary": "Get user by QR",
+          "parameters": [
+            { "name": "qrId", "in": "path", "required": true, "schema": { "type": "string" } }
+          ],
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "data": { "$ref": "#/components/schemas/UserItem" } } } } }
+            },
+            "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StdError" } } } }
+          },
+          "x-codeSamples": [
+            {
+              "lang": "bash",
+              "label": "curl",
+              "source": "curl -s \"https://stc-api.o3consultancy.ae/api/users/by-qr/QR123\" \\\n  -H \"x-api-key: $API_KEY\""
             }
-          }
-        },
-        "SubmitQuizRequest": {
-          "type": "object",
-          "required": ["qrId", "correctAnswers"],
-          "properties": {
-            "qrId": { "type": "string", "example": "QR_ABC123" },
-            "correctAnswers": { "type": "integer", "minimum": 0, "example": 7 }
-          }
-        },
-        "SubmitQuizSuccess": {
-          "type": "object",
-          "properties": {
-            "status": { "type": "string", "example": "success" },
-            "message": { "type": "string", "example": "Quiz submitted successfully" },
-            "data": {
-              "type": "object",
-              "properties": {
-                "qrId": { "type": "string", "example": "QR_ABC123" },
-                "correctAnswers": { "type": "integer", "example": 7 }
-              }
+          ]
+        }
+      },
+      "/users/register": {
+        "post": {
+          "tags": ["users"],
+          "summary": "Register user manually (normally created via survey)",
+          "requestBody": {
+            "required": true,
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserRegisterRequest" } } }
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "message": { "type": "string" }, "systemUserId": { "type": "string" }, "qrId": { "type": "string" } } } } }
+            },
+            "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StdError" } } } }
+          },
+          "x-codeSamples": [
+            {
+              "lang": "bash",
+              "label": "curl",
+              "source": "curl -s -X POST \"https://stc-api.o3consultancy.ae/api/users/register\" \\\n  -H \"x-api-key: $API_KEY\" -H \"content-type: application/json\" \\\n  -d '{\"name\":\"Jane Doe\",\"qrId\":\"QR123\",\"company\":\"Acme\",\"phoneCountryCode\":\"+971\",\"phoneNumber\":\"501234567\"}'"
             }
-          }
-        },
-        "ErrorResponse": {
-          "type": "object",
-          "properties": {
-            "status": { "type": "string", "example": "error" },
-            "message": { "type": "string", "example": "reason for error" }
-          }
+          ]
+        }
+      },
+
+      "/quiz/validate/{qrId}": {
+        "get": {
+          "tags": ["quiz"],
+          "summary": "Validate quiz eligibility (once per QR)",
+          "parameters": [
+            { "name": "qrId", "in": "path", "required": true, "schema": { "type": "string" } }
+          ],
+          "responses": {
+            "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "eligible": { "type": "boolean" } } } } } }
+          },
+          "x-codeSamples": [
+            { "lang": "bash", "label": "curl", "source": "curl -s \"https://stc-api.o3consultancy.ae/api/quiz/validate/QR123\" \\\n  -H \"x-api-key: $API_KEY\"" }
+          ]
+        }
+      },
+      "/quiz/submit": {
+        "post": {
+          "tags": ["quiz"],
+          "summary": "Submit quiz (allowed once per QR)",
+          "requestBody": {
+            "required": true,
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/QuizSubmitRequest" } } }
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": { "application/json": { "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string" },
+                  "message": { "type": "string" },
+                  "data": { "$ref": "#/components/schemas/QuizItem" }
+                }
+              } } }
+            }
+          },
+          "x-codeSamples": [
+            {
+              "lang": "bash",
+              "label": "curl",
+              "source": "curl -s -X POST \"https://stc-api.o3consultancy.ae/api/quiz/submit\" \\\n  -H \"x-api-key: $API_KEY\" -H \"content-type: application/json\" \\\n  -d '{\"qrId\":\"QR123\",\"correctAnswers\":7}'"
+            }
+          ]
+        }
+      },
+      "/quiz/list": {
+        "get": {
+          "tags": ["quiz"],
+          "summary": "List quiz submissions by date (UTC)",
+          "parameters": [
+            { "name": "startDate", "in": "query", "required": true, "schema": { "type": "string", "format": "date" } },
+            { "name": "endDate", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } }
+          ],
+          "responses": {
+            "200": { "description": "OK", "content": { "application/json": { "schema": {
+              "type": "object", "properties": {
+                "status": { "type": "string" },
+                "data": { "type": "array", "items": { "$ref": "#/components/schemas/QuizItem" } }
+              }
+            }}}}
+          },
+          "x-codeSamples": [
+            { "lang": "bash", "label": "curl", "source": "curl -s \"https://stc-api.o3consultancy.ae/api/quiz/list?startDate=2025-09-01&endDate=2025-09-04\" \\\n  -H \"x-api-key: $API_KEY\"" }
+          ]
+        }
+      },
+      "/quiz/by-qr/{qrId}": {
+        "get": {
+          "tags": ["quiz"],
+          "summary": "Get quiz submissions by QR",
+          "parameters": [
+            { "name": "qrId", "in": "path", "required": true, "schema": { "type": "string" } },
+            { "name": "startDate", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } },
+            { "name": "endDate", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } }
+          ],
+          "responses": {
+            "200": { "description": "OK", "content": { "application/json": { "schema": {
+              "type": "object", "properties": {
+                "status": { "type": "string" },
+                "data": { "type": "array", "items": { "$ref": "#/components/schemas/QuizItem" } }
+              }
+            }}}}
+          },
+          "x-codeSamples": [
+            { "lang": "bash", "label": "curl", "source": "curl -s \"https://stc-api.o3consultancy.ae/api/quiz/by-qr/QR123\" \\\n  -H \"x-api-key: $API_KEY\"" }
+          ]
+        }
+      },
+
+      "/surveys/validate-phone": {
+        "get": {
+          "tags": ["surveys"],
+          "summary": "Validate if a survey already exists for this phone (E.164)",
+          "parameters": [
+            { "name": "cc", "in": "query", "required": true, "schema": { "type": "string" }, "description": "Country code, e.g. +971 or 971" },
+            { "name": "number", "in": "query", "required": true, "schema": { "type": "string" }, "description": "Local/national number" }
+          ],
+          "responses": {
+            "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "exists": { "type": "boolean" } } } } } }
+          },
+          "x-codeSamples": [
+            {
+              "lang": "bash",
+              "label": "curl",
+              "source": "curl -s \"https://stc-api.o3consultancy.ae/api/surveys/validate-phone?cc=+971&number=501234567\" \\\n  -H \"x-api-key: $API_KEY\""
+            }
+          ]
+        }
+      },
+      "/surveys/submit": {
+        "post": {
+          "tags": ["surveys"],
+          "summary": "Submit survey (creates/updates user; enforces unique phone)",
+          "requestBody": {
+            "required": true,
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SurveySubmitRequest" } } }
+          },
+          "responses": {
+            "200": {
+              "description": "OK",
+              "content": { "application/json": { "schema": { "type": "object", "properties": {
+                "status": { "type": "string" },
+                "message": { "type": "string" },
+                "data": { "type": "object", "properties": {
+                  "surveyId": { "type": "string" },
+                  "sysId": { "type": "string" },
+                  "qrId": { "type": "string" }
+                }}
+              } } } }
+            }
+          },
+          "x-codeSamples": [
+            {
+              "lang": "bash",
+              "label": "curl",
+              "source": "curl -s -X POST \"https://stc-api.o3consultancy.ae/api/surveys/submit\" \\\n  -H \"x-api-key: $API_KEY\" -H \"content-type: application/json\" \\\n  -d '{\"qrId\":\"QR123\",\"name\":\"Jane Doe\",\"company\":\"Acme\",\"phoneCountryCode\":\"+971\",\"phoneNumber\":\"501234567\",\"interest\":\"None\",\"thoughtsOnStc\":\"Great!\",\"answers\":{\"q1\":\"Yes\",\"score\":5}}'"
+            }
+          ]
+        }
+      },
+      "/surveys/list": {
+        "get": {
+          "tags": ["surveys"],
+          "summary": "List surveys by submittedAt date (UTC)",
+          "parameters": [
+            { "name": "startDate", "in": "query", "required": true, "schema": { "type": "string", "format": "date" } },
+            { "name": "endDate", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } }
+          ],
+          "responses": {
+            "200": { "description": "OK", "content": { "application/json": { "schema": {
+              "type": "object", "properties": {
+                "status": { "type": "string" },
+                "data": { "type": "array", "items": { "$ref": "#/components/schemas/SurveyItem" } }
+              }
+            }}}}
+          },
+          "x-codeSamples": [
+            { "lang": "bash", "label": "curl", "source": "curl -s \"https://stc-api.o3consultancy.ae/api/surveys/list?startDate=2025-09-01&endDate=2025-09-04\" \\\n  -H \"x-api-key: $API_KEY\"" }
+          ]
+        }
+      },
+      "/surveys/by-qr/{qrId}": {
+        "get": {
+          "tags": ["surveys"],
+          "summary": "List surveys for a QR (most recent first)",
+          "parameters": [
+            { "name": "qrId", "in": "path", "required": true, "schema": { "type": "string" } }
+          ],
+          "responses": {
+            "200": { "description": "OK", "content": { "application/json": { "schema": {
+              "type": "object", "properties": {
+                "status": { "type": "string" },
+                "data": { "type": "array", "items": { "$ref": "#/components/schemas/SurveyItem" } }
+              }
+            }}}}
+          },
+          "x-codeSamples": [
+            { "lang": "bash", "label": "curl", "source": "curl -s \"https://stc-api.o3consultancy.ae/api/surveys/by-qr/QR123\" \\\n  -H \"x-api-key: $API_KEY\"" }
+          ]
         }
       }
     }
@@ -339,12 +395,15 @@
   </script>
 
   <script>
-    const spec = JSON.parse(document.getElementById('spec').textContent);
-    Redoc.init(spec, {
-      hideDownloadButton: false,
-      expandResponses: "200,201,400,401,404,409,422",
-      scrollYOffset: 60
-    }, document.getElementById('redoc-container'));
+    window.addEventListener('DOMContentLoaded', function () {
+      const spec = JSON.parse(document.getElementById('spec').textContent);
+      Redoc.init(spec, {
+        hideDownloadButton: false,
+        expandResponses: "200,400",
+        pathInMiddlePanel: true,
+        scrollYOffset: 0
+      }, document.getElementById('redoc'));
+    });
   </script>
 </body>
 
