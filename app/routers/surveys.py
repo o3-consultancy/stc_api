@@ -13,7 +13,8 @@ router = APIRouter(prefix="/surveys", tags=["surveys"])
 
 # ---------- Models ----------
 
-Interest = Literal["Smart Finance", "Bueniss Portal Service", "None"]
+Interest = Literal["Smart Finance",
+                   "Business Portal Service", "Share Your Idea"]
 
 
 class SubmitSurveyRequest(BaseModel):
