@@ -14,7 +14,7 @@ router = APIRouter(prefix="/surveys", tags=["surveys"])
 # ---------- Models ----------
 
 Interest = Literal["Smart Finance",
-                   "Business Portal Service", "Share Your Idea"]
+                   "Business Portal Service", "Smart Saver" "Share Your Idea"]
 
 
 class SubmitSurveyRequest(BaseModel):
@@ -23,7 +23,7 @@ class SubmitSurveyRequest(BaseModel):
     company: Optional[str] = None
     phoneCountryCode: str
     phoneNumber: str
-    interest: Interest
+    interest: str
     thoughtsOnStc: Optional[str] = None
     answers: Dict[str, Any]  # JSON object of question -> answer
 
@@ -92,7 +92,7 @@ class SurveyItem(BaseModel):
     phoneCountryCode: str
     phoneNumber: str
     phoneE164: str
-    interest: Interest
+    interest: str
     raffleEligible: bool
     # NOTE: we *store* datetime in Mongo, but *return* date here:
     raffleDate: Optional[date] = None
