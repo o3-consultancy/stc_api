@@ -53,15 +53,41 @@ def _date_bounds(start_date: date, end_date: date | None) -> tuple[datetime, dat
 @router.get("/validate/{qrId}")
 async def validate_quiz_eligibility(qrId: str, db: AsyncIOMotorDatabase = Depends(get_db)):
     """
-    Return whether a quiz can be taken for this qrId (only if **no** quiz exists).
+    Eligible ONLY if:
+      1) A user is registered with this qrId, and
+      2) There is NO quiz_results document yet for this qrId.
     """
     qr = (qrId or "").strip()
     if not qr:
         return {"status": "error", "message": "qrId is required"}
 
-    existing = await db["quiz_results"].find_one({"qrId": qr}, projection={"_id": 1})
-    eligible = existing is None
-    return {"status": "success", "eligible": eligible}
+    users = db["users"]
+    quizzes = db["quiz_results"]
+
+    # Check if a user is registered for this QR
+    user = await users.find_one({"qrId": qr}, projection={"_id": 0, "sysId": 1})
+
+    # Check if a quiz has already been submitted for this QR
+    existing_quiz = await quizzes.find_one({"qrId": qr}, projection={"_id": 1})
+
+    eligible = bool(user) and (existing_quiz is None)
+
+    # Optional, human-friendly message
+    reasons = []
+    if not user:
+        reasons.append("No user registered for this qrId.")
+        print(user)
+    if existing_quiz:
+        print(existing_quiz)
+        reasons.append("Quiz already submitted for this qrId.")
+
+    return {
+        "status": "sucess" if eligible else "failed",
+        "eligible": eligible,
+        "registered": bool(user),
+        "alreadySubmitted": existing_quiz is not None,
+        "message": "OK" if eligible else " ".join(reasons) or "Not eligible",
+    }
 
 
 # ---- Queries ----
